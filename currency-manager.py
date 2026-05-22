@@ -4,29 +4,28 @@ import psycopg2
 app = Flask(__name__)
 
 
-DB_CONFIG = {
-    "dbname": "microservices_db",
-    "user": "postgres",
-    "password": "postgres",
-    "host": "localhost",
-    "port": "5432"
-}
-
-
 def get_connection():
-    return psycopg2.connect(**DB_CONFIG)
+    connection = psycopg2.connect(
+        host="localhost",
+        database="lab_6",
+        user="postgres",
+        password="postgres"
+    )
+
+    return connection
 
 
 @app.route('/load', methods=['POST'])
 def load_currency():
     data = request.json
 
-    currency_name = data.get('currency_name')
-    rate = data.get('rate')
+    currency_name = data['currency_name']
+    rate = data['rate']
 
     connection = get_connection()
     cursor = connection.cursor()
 
+    # Проверка существования валюты
     cursor.execute(
         "SELECT * FROM currencies WHERE currency_name = %s",
         (currency_name,)
@@ -42,6 +41,7 @@ def load_currency():
             "message": "Валюта уже существует"
         }), 409
 
+    # Добавление валюты
     cursor.execute(
         """
         INSERT INTO currencies (currency_name, rate)
@@ -64,14 +64,18 @@ def load_currency():
 def update_currency():
     data = request.json
 
-    currency_name = data.get('currency_name')
-    rate = data.get('rate')
+    currency_name = data['currency_name']
+    rate = data['rate']
 
     connection = get_connection()
     cursor = connection.cursor()
 
+    # Проверка существования валюты
     cursor.execute(
-        "SELECT * FROM currencies WHERE currency_name = %s",
+        """
+        SELECT * FROM currencies
+        WHERE currency_name = %s
+        """,
         (currency_name,)
     )
 
@@ -85,6 +89,7 @@ def update_currency():
             "message": "Валюта не найдена"
         }), 404
 
+    # Обновление курса
     cursor.execute(
         """
         UPDATE currencies
@@ -100,7 +105,7 @@ def update_currency():
     connection.close()
 
     return jsonify({
-        "message": "Валюта обновлена"
+        "message": "Курс обновлен"
     }), 200
 
 
@@ -108,13 +113,17 @@ def update_currency():
 def delete_currency():
     data = request.json
 
-    currency_name = data.get('currency_name')
+    currency_name = data['currency_name']
 
     connection = get_connection()
     cursor = connection.cursor()
 
+    # Проверка существования валюты
     cursor.execute(
-        "SELECT * FROM currencies WHERE currency_name = %s",
+        """
+        SELECT * FROM currencies
+        WHERE currency_name = %s
+        """,
         (currency_name,)
     )
 
@@ -128,6 +137,7 @@ def delete_currency():
             "message": "Валюта не найдена"
         }), 404
 
+    # Удаление валюты
     cursor.execute(
         """
         DELETE FROM currencies
@@ -147,4 +157,4 @@ def delete_currency():
 
 
 if __name__ == '__main__':
-    app.run(port=5001, debug=True)
+    app.run(port=5001)

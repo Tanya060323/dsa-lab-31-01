@@ -4,27 +4,26 @@ import psycopg2
 app = Flask(__name__)
 
 
-DB_CONFIG = {
-    "dbname": "microservices_db",
-    "user": "postgres",
-    "password": "postgres",
-    "host": "localhost",
-    "port": "5432"
-}
-
-
 def get_connection():
-    return psycopg2.connect(**DB_CONFIG)
+    connection = psycopg2.connect(
+        host="localhost",
+        database="lab_6",
+        user="postgres",
+        password="postgres"
+    )
+
+    return connection
 
 
 @app.route('/convert', methods=['GET'])
 def convert_currency():
     currency_name = request.args.get('currency_name')
-    amount = request.args.get('amount')
+    amount = float(request.args.get('amount'))
 
     connection = get_connection()
     cursor = connection.cursor()
 
+    # Получение курса валюты
     cursor.execute(
         """
         SELECT rate
@@ -46,15 +45,15 @@ def convert_currency():
 
     rate = float(currency[0])
 
-    converted = float(amount) * rate
+    result = amount * rate
 
     cursor.close()
     connection.close()
 
     return jsonify({
-        "currency": currency_name,
+        "currency_name": currency_name,
         "amount": amount,
-        "converted_value": converted
+        "result": result
     }), 200
 
 
@@ -64,7 +63,10 @@ def get_currencies():
     cursor = connection.cursor()
 
     cursor.execute(
-        "SELECT id, currency_name, rate FROM currencies"
+        """
+        SELECT id, currency_name, rate
+        FROM currencies
+        """
     )
 
     currencies = cursor.fetchall()
@@ -85,4 +87,4 @@ def get_currencies():
 
 
 if __name__ == '__main__':
-    app.run(port=5002, debug=True)
+    app.run(port=5002) 
